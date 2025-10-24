@@ -129,9 +129,9 @@ void readParameters(const string& customerInfo, const string& goods, const strin
 void printData(const Data& data) {
     cout << "===== Cargo Info =====" << endl;
     for (size_t i = 0; i < data.cargoInformation.size(); ++i) {
-        cout << "Cargo " << i << ": ";
         cout << "CustomerId=" << data.cargoInformation[i].customerId
-            << ", volume=" << data.cargoInformation[i].volume << endl;
+             << ", CargoId= " << data.cargoInformation[i].cargoId
+             << ", volume=" << data.cargoInformation[i].volume << endl;  
     }
 
     cout << "\n===== Customer Cargo Number & Volume =====" << endl;
@@ -162,3 +162,20 @@ void printData(const Data& data) {
     }
     cout << "=================================================" << endl;
 }
+
+void printChromosomeInfo(const Individual& indiv){
+    cout << "======== Individual ========\n";
+    for (size_t j = 0; j < indiv.chromosome.size(); ++j) {
+        const Gene& g = indiv.chromosome[j];
+        cout << "Gene " << j + 1
+             << " | Customer: " << g.customerId
+             << " | CargoID: "  << g.cargoId
+             << " | RouteArea: "  << g.routeArea
+             << " | undecodedServiceArea: " << g.undecodedServiceArea
+             << " | decodedServiceArea: "   << g.decodedServiceArea
+             << " | undecodedRotation: " << g.undecodedRotation 
+             << " | decodedRotation: " << g.decodedRotation << "\n";
+    }
+    cout << endl;
+}
+

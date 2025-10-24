@@ -8,23 +8,21 @@
 using namespace std;
 
 int main(){
+
     srand(time(NULL));
+
+    // 讀檔
     Data parameters;
-    readParameters("customerInfo.csv", "goods.csv", "serviceArea.csv", "routes.csv", parameters); 
-    printData(parameters); 
+    readParameters("customerInfo.csv", "goods.csv", "serviceArea.csv", "routes.csv", parameters);
+    
+    // 編碼 & 初始母體生成
     vector<Individual> population = initializePopulation(populationSize, parameters);
 
-    for (int i = 0; i < population.size(); ++i) {
-        cout << "======== Individual " << i + 1 << " ========\n";
-        for (size_t j = 0; j < population[i].chromosome.size(); ++j) {
-            const Gene& g = population[i].chromosome[j];
-            cout << "Gene " << j + 1 
-                 << " | Customer: " << g.customerId
-                 << " | CargoID: "  << g.cargoId 
-                 << " | ServiceArea: " << g.serviceArea
-                 << " | Rotation: " << g.rotation << "\n";
-        }
-        cout << endl;
-    }
+    // 建立貨物對照表，方便進行解碼和貨物裝載對應
+    auto cargoLookUp = createCargoLookup(parameters);
+
+    // 解碼
+    decodePopulation(population,parameters,cargoLookUp);
+
     return 0;
 }

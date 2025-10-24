@@ -40,9 +40,12 @@ struct Data{
 
 struct Gene {
     int customerId;
-    int cargoId;       
-    int serviceArea;       
-    int rotation;       
+    int cargoId;
+    int routeArea;   
+    int undecodedServiceArea;
+    int decodedServiceArea = 0;       
+    int undecodedRotation; 
+    int decodedRotation = 0;       
     int position[3] = { -1, -1, -1 };
 };
 
@@ -66,4 +69,5 @@ struct Individual {
 
 void readParameters(const string& customerInfo, const string& goods, const string& serviceArea, const string& routes, Data& parameter);
 void printData(const Data& data);
+void printChromosomeInfo(const Individual& indiv);
 #endif
