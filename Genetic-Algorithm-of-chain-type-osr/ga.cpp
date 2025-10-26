@@ -156,3 +156,70 @@ void decodePopulation(vector<Individual>& decodedPopulation, const Data &paramet
         decodeCargoRotation(decodedPopulation[i], parameters, cargoLookup);
     }
 }
+
+void BLPlacement3D::setCargoLookup(const unordered_map<int, unordered_map<int, Cargo>>& lookup) {
+    cargoLookup = lookup;
+}
+bool BLPlacement3D::tryInsert(vector<Gene>& group) {
+    vector<Box> tempPlaced = placedBoxes;
+    for (auto& g : group) {
+        Box b = getBoxFromGene(g);
+        if (!placeBox(b, tempPlaced)) {
+            return false;
+        }
+        g.position[0] = b.x;
+        g.position[1] = b.y;
+        g.position[2] = b.z;
+        tempPlaced.push_back(b);
+    }
+
+    placedBoxes = tempPlaced; 
+    return true;
+} 
+
+bool BLPlacement3D::placeBox(Box& box, const vector<Box>& currentBoxes) {
+    vector<tuple<int, int, int>> anchorPoints = {{0, 0, 0}};
+    for (const auto& b : currentBoxes) {
+        anchorPoints.push_back({b.x + b.l, b.y, b.z});
+        anchorPoints.push_back({b.x, b.y + b.w, b.z});
+        anchorPoints.push_back({b.x, b.y, b.z + b.h});
+    }
+
+    for (const auto& [ax, ay, az] : anchorPoints) {
+        box.x = ax;
+        box.y = ay;
+        box.z = az;
+        if (isWithinContainer(box) && !hasCollision(box, currentBoxes) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool BLPlacement3D::isWithinContainer(const Box& b) {
+    return b.x + b.l <= containerL && b.y + b.w <= containerW && b.z + b.h <= containerH;
+}
+
+bool BLPlacement3D::hasCollision(const Box& b, const vector<Box>& boxes) {
+    for (const auto& p : boxes) {
+        if (!(b.x + b.l <= p.x || p.x + p.l <= b.x ||
+                b.y + b.w <= p.y || p.y + p.w <= b.y ||
+                b.z + b.h <= p.z || p.z + p.h <= b.z)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool BLPlacement3D::isSupported(const Box& b, const vector<Box>& boxes) {
+    if (b.z == 0) return true;
+    int supportArea = 0, baseArea = b.l * b.w;
+    for (const auto& p : boxes) {
+        if (p.z + p.h == b.z) {
+            int xOverlap = max(0, min(b.x + b.l, p.x + p.l) - max(b.x, p.x));
+            int yOverlap = max(0, min(b.y + b.w, p.y + p.w) - max(b.y, p.y));
+            supportArea += xOverlap * yOverlap;
+        }
+    }
+    return supportArea >= 0.8 * baseArea; 
+}
