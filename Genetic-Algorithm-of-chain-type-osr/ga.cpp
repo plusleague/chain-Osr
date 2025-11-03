@@ -155,71 +155,130 @@ void decodePopulation(vector<Individual>& decodedPopulation, const Data &paramet
         decodeServiceArea(decodedPopulation[i], parameters);
         decodeCargoRotation(decodedPopulation[i], parameters, cargoLookup);
     }
+    printChromosomeInfo(decodedPopulation[0]);
 }
 
-void BLPlacement3D::setCargoLookup(const unordered_map<int, unordered_map<int, Cargo>>& lookup) {
-    cargoLookup = lookup;
-}
-bool BLPlacement3D::tryInsert(vector<Gene>& group) {
-    vector<Box> tempPlaced = placedBoxes;
-    for (auto& g : group) {
-        Box b = getBoxFromGene(g);
-        if (!placeBox(b, tempPlaced)) {
-            return false;
+void evaluateFitness(Individual &indiv, const Data &parameters) {
+
+    long long rentedVehicleCargoCost = 0.0;
+    long long vechicleLoadedMaxGap = 0.0;
+
+    Truck selfOwnedTrucks[regionNum + 1]; // 每一區域皆有自己的自有車輛
+    vector<Truck> rentedTrucks;
+    unordered_map<int, vector<Gene>> regionMap;
+    unordered_map<int, bool> isLoadedGlobal; // 紀錄所有裝過的客戶
+    vector <int> notLoadedCustomer; //紀錄裝不了的客戶
+    
+    for (int i = 1; i <= regionNum; ++i) { 
+        selfOwnedTrucks[i].truckId = i;
+    }
+
+    for (const auto &gene : indiv.chromosome) { //依照順序建立每個區域的貨物清單列表
+        regionMap[gene.decodedServiceArea].push_back(gene);
+    }
+
+    for (int area = 1; area <= regionNum; ++area) {
+        if (regionMap.find(area) == regionMap.end()) continue;
+        vector<Gene> &cargoList = regionMap[area];
+
+        // 按染色體順序處理（從後往前）
+        unordered_map<int, vector<Gene>> customerGrouped;
+
+        for (int i = cargoList.size() - 1; i >= 0; --i) {
+            const Gene& g = cargoList[i];
+            customerGrouped[g.customerId].push_back(g);
         }
-        g.position[0] = b.x;
-        g.position[1] = b.y;
-        g.position[2] = b.z;
-        tempPlaced.push_back(b);
-    }
 
-    placedBoxes = tempPlaced; 
-    return true;
-} 
+        // === 自有車輛處理===
+        Truck& truck = selfOwnedTrucks[area];
+        unordered_set<int> seen;
+        
+        //左下角點法
+        BLPlacement3D loader(truck.length, truck.width, truck.height);
+        loader.setCargoLookup(createCargoLookup(parameters));
 
-bool BLPlacement3D::placeBox(Box& box, const vector<Box>& currentBoxes) {
-    vector<tuple<int, int, int>> anchorPoints = {{0, 0, 0}};
-    for (const auto& b : currentBoxes) {
-        anchorPoints.push_back({b.x + b.l, b.y, b.z});
-        anchorPoints.push_back({b.x, b.y + b.w, b.z});
-        anchorPoints.push_back({b.x, b.y, b.z + b.h});
-    }
-
-    for (const auto& [ax, ay, az] : anchorPoints) {
-        box.x = ax;
-        box.y = ay;
-        box.z = az;
-        if (isWithinContainer(box) && !hasCollision(box, currentBoxes) ) {
-            return true;
+        for (const auto&gene: cargoList) {
+            if (seen.count(gene.customerId)) continue;
+            seen.insert(gene.customerId);
+            auto& cargoGroup = customerGrouped[gene.customerId];
+            if (loader.tryInsert(cargoGroup)) {
+                truck.loadedVolume += parameters.totalVolume[gene.customerId - 1]; //紀錄每個車裝載的才積
+                truck.assignedCargo.insert(truck.assignedCargo.end(), cargoGroup.begin(), cargoGroup.end());
+                isLoadedGlobal[gene.customerId] = true;
+                for (const auto& g : cargoGroup) {
+                    for (auto& indivGene : indiv.chromosome) {
+                        if (indivGene.customerId == g.customerId && indivGene.cargoId == g.cargoId) {
+                            indivGene.position[0] = g.position[0];
+                            indivGene.position[1] = g.position[1];
+                            indivGene.position[2] = g.position[2];
+                        }
+                    }
+                }
+            }
+            else {
+                isLoadedGlobal[gene.customerId] = false;
+                cout << "cannot load" << endl;
+                break;
+            }
         }
     }
-    return false;
-}
 
-bool BLPlacement3D::isWithinContainer(const Box& b) {
-    return b.x + b.l <= containerL && b.y + b.w <= containerW && b.z + b.h <= containerH;
-}
+    long long maxVol = 0;
+    long long minVol = INT_MAX;
+    for (int area = 1; area <= regionNum; ++area) {
+        int v = selfOwnedTrucks[area].loadedVolume;
+        if (v > maxVol) maxVol = v;
+        if (v < minVol) minVol = v;
+    }
+    vechicleLoadedMaxGap = maxVol - minVol;
+    indiv.fitness.push_back(vechicleLoadedMaxGap);
 
-bool BLPlacement3D::hasCollision(const Box& b, const vector<Box>& boxes) {
-    for (const auto& p : boxes) {
-        if (!(b.x + b.l <= p.x || p.x + p.l <= b.x ||
-                b.y + b.w <= p.y || p.y + p.w <= b.y ||
-                b.z + b.h <= p.z || p.z + p.h <= b.z)) {
-            return true;
+    // 處理沒裝完的貨物部分
+    for (const auto& [customerId, loaded] : isLoadedGlobal) {
+        if (!loaded) {  // 如果這個客戶沒被成功裝載
+            notLoadedCustomer.push_back(customerId);
         }
     }
-    return false;
-}
 
-bool BLPlacement3D::isSupported(const Box& b, const vector<Box>& boxes) {
-    if (b.z == 0) return true;
-    int supportArea = 0, baseArea = b.l * b.w;
-    for (const auto& p : boxes) {
-        if (p.z + p.h == b.z) {
-            int xOverlap = max(0, min(b.x + b.l, p.x + p.l) - max(b.x, p.x));
-            int yOverlap = max(0, min(b.y + b.w, p.y + p.w) - max(b.y, p.y));
-            supportArea += xOverlap * yOverlap;
+    size_t cursor = 0;
+    int rentedTruckId = 0;
+    unordered_set<int> rentedSeen;
+
+    while (cursor < notLoadedCustomer.size()) {
+
+        Truck rentedTruck;
+        rentedTruck.truckId = ++rentedTruckId;
+
+        vector<Gene> cargoGroup;
+        for (const auto& g : indiv.chromosome) {
+            // 只取這位顧客、且尚未被裝載(例如 position[0] == -1 當成未裝載指標)
+            if ( g.position[0] == -1 ) {
+                cargoGroup.push_back(g);
+            }
+        }
+
+        BLPlacement3D loader(rentedTruck.length, rentedTruck.width, rentedTruck.height);
+        loader.setCargoLookup(createCargoLookup(parameters));
+
+        vector<int> routeStack;
+
+        for (; cursor < notLoadedCustomer.size(); ++cursor) {
+            int custId = notLoadedCustomer[cursor];
+            if (rentedSeen.count(custId)) continue;
+            
+            if (loader.tryInsert(cargoGroup)) {
+                routeStack.push_back(custId);
+                rentedTruck.assignedCargo.insert(rentedTruck.assignedCargo.end(), cargoGroup.begin(), cargoGroup.end());
+                rentedSeen.insert(custId);
+
+                for (const auto& g : cargoGroup) {
+
+                }
+            } else {
+                ++cursor;
+                break;
+            }
         }
     }
-    return supportArea >= 0.8 * baseArea; 
 }
+
