@@ -155,7 +155,7 @@ void decodePopulation(vector<Individual>& decodedPopulation, const Data &paramet
         decodeServiceArea(decodedPopulation[i], parameters);
         decodeCargoRotation(decodedPopulation[i], parameters, cargoLookup);
     }
-    printChromosomeInfo(decodedPopulation[0]);
+    // printChromosomeInfo(decodedPopulation[0]);
 }
 
 void evaluateFitness(Individual &indiv, const Data &parameters) {
@@ -226,7 +226,8 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     long long maxVol = 0;
     long long minVol = INT_MAX;
     for (int area = 1; area <= regionNum; ++area) {
-        int v = selfOwnedTrucks[area].loadedVolume;
+        long long v = selfOwnedTrucks[area].loadedVolume;
+        cout << "area: " << area << " loadedVolume: " << v << endl;
         if (v > maxVol) maxVol = v;
         if (v < minVol) minVol = v;
     }
@@ -244,6 +245,8 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     int rentedTruckId = 0;
     unordered_set<int> rentedSeen;
 
+    unordered_set<int> notLoadedSet(notLoadedCustomer.begin(), notLoadedCustomer.end());
+
     while (cursor < notLoadedCustomer.size()) {
 
         Truck rentedTruck;
@@ -252,7 +255,7 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
         vector<Gene> cargoGroup;
         for (const auto& g : indiv.chromosome) {
             // 只取這位顧客、且尚未被裝載(例如 position[0] == -1 當成未裝載指標)
-            if ( g.position[0] == -1 ) {
+            if (notLoadedSet.count(g.customerId)) {
                 cargoGroup.push_back(g);
             }
         }
@@ -272,13 +275,25 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
                 rentedSeen.insert(custId);
 
                 for (const auto& g : cargoGroup) {
-
+                    const Cargo& c = loader.cargoLookup[g.customerId][g.cargoId];
+                    int chargeUnits = c.volume / 27000;
+                    rentedVehicleCargoCost += chargeUnits * 6;
                 }
+
             } else {
                 ++cursor;
                 break;
             }
         }
+        if (!routeStack.empty()) {
+            rentedTruck.route.insert(rentedTruck.route.end(), routeStack.rbegin(), routeStack.rend());
+            rentedTrucks.push_back(rentedTruck);
+        }
     }
+    for (int i = 1; i <= regionNum; ++i) {
+        indiv.selfOwnedTrucks[i] = selfOwnedTrucks[i];
+    }
+    indiv.rentedTrucks = rentedTrucks;
+    indiv.fitness.push_back(rentedVehicleCargoCost);
 }
 

@@ -54,7 +54,8 @@ struct Truck{
     int length = 300;
     int width = 170;
     int height = 165;
-    int loadedVolume;
+    vector<int> route;
+    long long loadedVolume = 0;
     vector<Gene> assignedCargo; 
 };
 

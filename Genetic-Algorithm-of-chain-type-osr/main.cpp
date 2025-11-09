@@ -23,6 +23,19 @@ int main(){
 
     // ¸Ñ½X
     decodePopulation(population,parameters,cargoLookUp);
+    evaluateFitness(population[0],parameters);
+    cout << population[0].fitness[0] << endl;
+    cout << population[0].fitness[1]; 
+    for (int i = 1; i <= regionNum; ++i) {
+        cout << "Truck " << i << " cargos:\n";
+        for (const auto& g : population[0].selfOwnedTrucks[i].assignedCargo) {
+            cout << "  Customer: " << g.customerId
+                << " CargoID: " << g.cargoId
+                << " Position: (" << g.position[0] << ", "
+                                << g.position[1] << ", "
+                                << g.position[2] << ")\n";
+        }
+    }
 
     return 0;
 }
