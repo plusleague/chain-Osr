@@ -227,7 +227,7 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     long long minVol = INT_MAX;
     for (int area = 1; area <= regionNum; ++area) {
         long long v = selfOwnedTrucks[area].loadedVolume;
-        cout << "area: " << area << " loadedVolume: " << v << endl;
+        // cout << "area: " << area << " loadedVolume: " << v << endl;
         if (v > maxVol) maxVol = v;
         if (v < minVol) minVol = v;
     }
@@ -295,5 +295,59 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     }
     indiv.rentedTrucks = rentedTrucks;
     indiv.fitness.push_back(rentedVehicleCargoCost);
+}
+
+vector<Individual> selection(const vector<Individual>& population, const vector<Individual>& decodedPopulation, double eliteRatio = 0.05, int tournamentSize = 2) {
+    
+    int eliteCount = static_cast<int>(population.size() * eliteRatio);
+    vector<int> indices(population.size());
+    iota(indices.begin(), indices.end(), 0); // [0, 1, 2, ..., N-1]
+
+    // 依照 fitness 排序 index
+    sort(indices.begin(), indices.end(), [&](int a, int b) {
+        const auto& fa = decodedPopulation[a].fitness;
+        const auto& fb = decodedPopulation[b].fitness;
+
+        // 先比第二個目標：fitness[1]
+        if (fa[1] != fb[1]) {
+            return fa[1] < fb[1];   // 越小排越前面
+        }
+        // 若 fitness[1] 一樣，再比第一個目標：fitness[0]
+        return fa[0] < fb[0];       // 也是越小排越前面
+    });
+
+    // 1. 先選出 top N% elite
+    vector<Individual> newPopulation;
+    for (int i = 0; i < eliteCount; ++i) {
+        newPopulation.push_back(population[indices[i]]);
+    }
+
+    // 2. Tournament selection 直到補滿
+    while (newPopulation.size() < population.size()) {
+        // 隨機抽出 tournamentSize 個 index
+        vector<int> tournament;
+        for (int i = 0; i < tournamentSize; ++i) {
+            int r = rand() % population.size();
+            tournament.push_back(r);
+        }
+
+        // 找出 tournament 中 fitness 最好的
+        int bestIdx = *min_element(tournament.begin(), tournament.end(), [&](int a, int b) {
+            const auto& fa = decodedPopulation[a].fitness;
+            const auto& fb = decodedPopulation[b].fitness;
+
+            // 定義「a 比 b 小嗎？」
+            // 先看 fitness[1]，小的視為「比較小」
+            if (fa[1] != fb[1]) {
+                return fa[1] < fb[1];  // fa[1] 比 fb[1] 小 => a 比 b 小
+            }
+            // 若 fitness[1] 相同，再比 fitness[0]
+            return fa[0] < fb[0];
+        });
+
+        newPopulation.push_back(population[bestIdx]);
+    }
+
+    return newPopulation;
 }
 
