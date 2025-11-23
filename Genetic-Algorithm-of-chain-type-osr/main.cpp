@@ -29,5 +29,6 @@ int main(){
         evaluateFitness(population[i], parameters);
     }
     vector<Individual> selectedPopulation = selection(undecodedPopulation, population);
+    vector<Individual> crossoveredPopulation = crossoverPopulation(selectedPopulation, crossoverRate);
     return 0;
 }

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <utility>
+#include <cassert>
 
 using namespace std;
 
@@ -304,15 +305,16 @@ vector<Individual> selection(const vector<Individual>& population, const vector<
     iota(indices.begin(), indices.end(), 0); // [0, 1, 2, ..., N-1]
 
     // 依照 fitness 排序 index
+    // 這個 fitness 就是最後目標函數值，因為long long太大如果換成小數可能出現錯誤，所以要把fitness越小的擺在最前面
     sort(indices.begin(), indices.end(), [&](int a, int b) {
         const auto& fa = decodedPopulation[a].fitness;
         const auto& fb = decodedPopulation[b].fitness;
 
-        // 先比第二個目標：fitness[1]
+        // 先比第二個目標：fitness[1](外用租用成本)
         if (fa[1] != fb[1]) {
             return fa[1] < fb[1];   // 越小排越前面
         }
-        // 若 fitness[1] 一樣，再比第一個目標：fitness[0]
+        // 若 fitness[1] 一樣，再比第一個目標：fitness[0](各車裝載材積差距)
         return fa[0] < fb[0];       // 也是越小排越前面
     });
 
@@ -351,3 +353,104 @@ vector<Individual> selection(const vector<Individual>& population, const vector<
     return newPopulation;
 }
 
+void crossoverServiceArea(Individual& child1, Individual& child2, double swapProb = 0.5) {
+    assert(child1.chromosome.size() == child2.chromosome.size());
+    size_t n = child1.chromosome.size();
+    if (n == 0) return;
+
+    std::unordered_set<int> visited;   // 確保每個 customer 只處理一次
+
+    for (size_t i = 0; i < n; ++i) {
+        int cid = child1.chromosome[i].customerId;
+
+        // 同一個 customer 只決定一次要不要交換
+        if (visited.count(cid)) continue;
+        visited.insert(cid);
+
+        // 如果設計保證同一位置 customerId 一樣，可以檢查一下：
+        if (child1.chromosome[i].customerId != child2.chromosome[i].customerId) {
+            // 如果有可能不一樣，也可以改成 continue;
+            continue;
+        }
+
+        int code1 = child1.chromosome[i].undecodedServiceArea;
+        int code2 = child2.chromosome[i].undecodedServiceArea;
+
+        // 若兩條染色體中此客戶的編碼一樣，就完全不交換
+        if (code1 == code2) continue;
+
+        // 可選：用機率決定要不要交換這個客戶
+        double r = static_cast<double>(rand()) / RAND_MAX;
+        if (r > swapProb) continue;
+
+        // 對這個顧客的「所有位置」做交換
+        for (size_t j = 0; j < n; ++j) {
+            if (child1.chromosome[j].customerId == cid) {
+                std::swap(child1.chromosome[j].undecodedServiceArea,
+                          child2.chromosome[j].undecodedServiceArea);
+            }
+        }
+    }
+}
+
+void crossoverLoadingRotation(Individual& child1, Individual& child2) {
+    int N = child1.chromosome.size();
+
+    // 隨機選一個切斷點
+    int cutIdx = rand() % (N - 1) + 1; // 切在1～N-1之間，避免整條不動
+
+    // 從切斷點以後，交換貨物的rotation編碼
+    for (int i = cutIdx; i < N; ++i) {
+        swap(child1.chromosome[i].undecodedRotation, child2.chromosome[i].undecodedRotation);
+    }
+}
+
+pair<Individual, Individual> crossover(const Individual& parent1, const Individual& parent2) {
+    Individual child1 = parent1;
+    Individual child2 = parent2;
+
+    // 1. 重疊服務區段交換
+    crossoverServiceArea(child1, child2);
+    
+    // 2. 貨櫃裝載段交換
+    crossoverLoadingRotation(child1, child2);
+
+    return {child1, child2};
+}
+vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulation, double crossoverRate) {
+    vector<Individual> newPopulation;
+    int popSize = selectedPopulation.size();
+
+    vector<int> indices(popSize);
+    iota(indices.begin(), indices.end(),0);
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(indices.begin(), indices.end(),g);
+    for (int i = 0; i < popSize; i += 2) {
+        // 安全檢查：防止最後只剩一個
+        if (i + 1 >= popSize) break;
+
+        const Individual& parent1 = selectedPopulation[indices[i]];
+        const Individual& parent2 = selectedPopulation[indices[i+1]];
+
+        // 交配機率
+        double r = (double)rand() / RAND_MAX;
+        if (r < crossoverRate) {
+            Individual child1, child2;
+            tie(child1, child2) = crossover(parent1, parent2);
+            newPopulation.push_back(child1);
+            newPopulation.push_back(child2);
+        } else {
+            // 不交配，直接複製父母
+            newPopulation.push_back(parent1);
+            newPopulation.push_back(parent2);
+        }
+    }
+
+    // 如果新族群數量多於原來，切掉多餘的
+    if (newPopulation.size() > popSize) {
+        newPopulation.resize(popSize);
+    }
+
+    return newPopulation;
+}
