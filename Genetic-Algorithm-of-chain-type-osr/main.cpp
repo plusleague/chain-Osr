@@ -17,18 +17,26 @@ int main(){
     
     // 編碼 & 初始母體生成
     vector<Individual> population = initializePopulation(populationSize, parameters);
-    vector<Individual> undecodedPopulation = population;
 
-    // 建立貨物對照表，方便進行解碼和貨物裝載對應
-    auto cargoLookUp = createCargoLookup(parameters);
+    for (int generation = 0; generation < maxGenerations; ++generation) {
+        vector<Individual> undecodedPopulation = population;
 
-    // 解碼
-    decodePopulation(population,parameters,cargoLookUp);
+        // 建立貨物對照表，方便進行解碼和貨物裝載對應
+        auto cargoLookUp = createCargoLookup(parameters);
 
-    for (size_t i = 0; i < population.size(); ++i) {
-        evaluateFitness(population[i], parameters);
+        // 解碼
+        decodePopulation(population,parameters,cargoLookUp);
+
+        for (size_t i = 0; i < population.size(); ++i) {
+            evaluateFitness(population[i], parameters);
+        }
+        vector<Individual> selectedPopulation = selection(undecodedPopulation, population);
+        vector<Individual> crossoveredPopulation = crossoverPopulation(selectedPopulation, crossoverRate);
+        for (int i = 0; i < populationSize; ++i) {
+            mutateServiceArea(crossoveredPopulation[i], parameters, mutationRate);   
+            mutateRotation(crossoveredPopulation[i], mutationRate);
+        }
+        population = crossoveredPopulation;
     }
-    vector<Individual> selectedPopulation = selection(undecodedPopulation, population);
-    vector<Individual> crossoveredPopulation = crossoverPopulation(selectedPopulation, crossoverRate);
     return 0;
 }

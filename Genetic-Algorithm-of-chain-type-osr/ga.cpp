@@ -218,7 +218,6 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
             }
             else {
                 isLoadedGlobal[gene.customerId] = false;
-                cout << "cannot load" << endl;
                 break;
             }
         }
@@ -453,4 +452,45 @@ vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulat
     }
 
     return newPopulation;
+}
+
+void mutateServiceArea(Individual& indiv, const Data& parameters, double mutationRate) {
+
+    // 以「顧客」為單位處理：同一顧客只決定一次要不要突變
+    unordered_set<int> visitedCustomers;
+
+    for (auto& gene : indiv.chromosome) {
+        int cid = gene.customerId;
+
+        // 同一個客戶只處理一次
+        if (visitedCustomers.count(cid)) continue;
+        visitedCustomers.insert(cid);
+
+        // 決定要不要突變
+        double r = static_cast<double>(rand()) / RAND_MAX;
+        if (r >= mutationRate) continue;
+
+        // 取得目前這個顧客的編碼（1 或 2）
+        int currentEncoding = gene.undecodedServiceArea;
+        int newEncoding = (currentEncoding == 1 ? 2 : 1);
+
+        // 將這個顧客在整條 chromosome 中的所有基因，一起改成 newEncoding
+        for (auto& g2 : indiv.chromosome) {
+            if (g2.customerId == cid) {
+                g2.undecodedServiceArea = newEncoding;
+            }
+        }
+    }
+}
+void mutateRotation(Individual& indiv, double mutationRate) {
+    for (auto& gene : indiv.chromosome) {
+        if ((double)rand() / RAND_MAX < mutationRate) {
+            int originalRotation = gene.undecodedRotation;
+            int newRotation = rand() % 6 + 1;  // 產生 1~6
+            while (newRotation == originalRotation) {
+                newRotation = rand() % 6 + 1;  // 避免跟原本一樣
+            }
+            gene.undecodedRotation = newRotation;
+        }
+    }
 }
