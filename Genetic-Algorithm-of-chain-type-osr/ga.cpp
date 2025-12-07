@@ -1,4 +1,4 @@
-// ³B²zGA¬ÛÃöµ{¦¡¡A¥]¬A½s½X¡B¸Ñ½X¡B­pºâ¾AÀ³«×µ¥µ¥
+// è™•ç†GAç›¸é—œç¨‹å¼ï¼ŒåŒ…æ‹¬ç·¨ç¢¼ã€è§£ç¢¼ã€è¨ˆç®—é©æ‡‰åº¦ç­‰ç­‰
 #include "data.h"
 #include <vector>
 #include <random>
@@ -12,16 +12,16 @@
 
 using namespace std;
 
-// ²£¥Íªì©l¬V¦âÅé¡A¥]§t½s½X
+// ç”¢ç”Ÿåˆå§‹æŸ“è‰²é«”ï¼ŒåŒ…å«ç·¨ç¢¼
 vector<Individual> initializePopulation(const int population_size, const Data& parameters) {
 
-    // 1. ¥ı¥Í¦¨ªì©lºØ¸s¡AIndividual¤À§O¥Nªíªº¬O¤@±ø¬V¦âÅé¡AºØ¸s¤º·|¦³ populationSize ­Ó¬V¦âÅé
+    // 1. å…ˆç”Ÿæˆåˆå§‹ç¨®ç¾¤ï¼ŒIndividualåˆ†åˆ¥ä»£è¡¨çš„æ˜¯ä¸€æ¢æŸ“è‰²é«”ï¼Œç¨®ç¾¤å…§æœƒæœ‰ populationSize å€‹æŸ“è‰²é«”
     vector<Individual> population;
     for (int i = 0; i < population_size; ++i) {
         Individual ind;
         vector <int> remembered;
         unordered_map<int, vector<Gene>> twoRegionCustomerBank;
-        // ¨Ì·Ó¨C­Ó°Ï°ìªº¸ô½u¶¶§Ç«Ø¥ß°ò¦]§Ç¦C
+        // ä¾ç…§æ¯å€‹å€åŸŸçš„è·¯ç·šé †åºå»ºç«‹åŸºå› åºåˆ—
         for (int region = 0; region < regionNum; ++region) {
             const auto& route = parameters.route[region];
             for (int customerId : route) {
@@ -31,13 +31,13 @@ vector<Individual> initializePopulation(const int population_size, const Data& p
                 int cargoCount = parameters.cargoNumber[idx];
                 if (cargoCount <= 0) cargoCount = 1;
 
-                // ­pºâ¸ÓÅU«È¥iªA°Èªº°Ï°ì¼Æ
+                // è¨ˆç®—è©²é¡§å®¢å¯æœå‹™çš„å€åŸŸæ•¸
                 int regionCount = 0;
                 for (int r = 0; r < regionNum; ++r)
                     if (parameters.serviceRegion[idx][r] == 1) regionCount++;
 
                 if (regionCount == 2) {
-                    // ¨â°ÏÅU«È¡G¼ÒªO½T«O¤@­P¡A¦ı´¡¤J«e­nÂĞ¼g routeArea
+                    // å…©å€é¡§å®¢ï¼šæ¨¡æ¿ç¢ºä¿ä¸€è‡´ï¼Œä½†æ’å…¥å‰è¦è¦†å¯« routeArea
                     if (!twoRegionCustomerBank.count(customerId)) {
                         int assignedServiceArea = rand() % 2 + 1; // 1 or 2
                         vector<Gene> templ;
@@ -48,27 +48,27 @@ vector<Individual> initializePopulation(const int population_size, const Data& p
                             g.customerId  = customerId;
                             g.undecodedServiceArea = assignedServiceArea;
                             g.undecodedRotation    = rand() % 6 + 1;
-                            g.routeArea   = -1;                // ¥ı¯dªÅ¡A´¡¤J®É¦A¨Ì region ³]©w
+                            g.routeArea   = -1;                // å…ˆç•™ç©ºï¼Œæ’å…¥æ™‚å†ä¾ region è¨­å®š
                             templ.push_back(g);
                         }
                         twoRegionCustomerBank[customerId] = std::move(templ);
                     }
-                    // ´¡¤J®É§â routeArea ³]¬°·í«e region+1
+                    // æ’å…¥æ™‚æŠŠ routeArea è¨­ç‚ºç•¶å‰ region+1
                     const auto& templ = twoRegionCustomerBank[customerId];
                     for (auto g : templ) {
-                        g.routeArea = region + 1;             // ¡¹ ÃöÁä¡G¨Ó·½¸ô½u°Ï°ì
+                        g.routeArea = region + 1;             // â˜… é—œéµï¼šä¾†æºè·¯ç·šå€åŸŸ
                         ind.chromosome.push_back(g);
                     }
                 } else {
-                    // «D¨â°ÏÅU«È¡G²{³õ¥Í¦¨¨Ãª½±µ³] routeArea
-                    int assignedServiceArea = 1; // §Aªº³W«h
+                    // éå…©å€é¡§å®¢ï¼šç¾å ´ç”Ÿæˆä¸¦ç›´æ¥è¨­ routeArea
+                    int assignedServiceArea = 1; // ä½ çš„è¦å‰‡
                     for (int c = 0; c < cargoCount; ++c) {
                         Gene gene;
                         gene.cargoId     = c + 1;
                         gene.customerId  = customerId;
                         gene.undecodedServiceArea = assignedServiceArea;
                         gene.undecodedRotation    = rand() % 6 + 1;
-                        gene.routeArea   = region + 1;        // ¡¹ ÃöÁä¡G¨Ó·½¸ô½u°Ï°ì
+                        gene.routeArea   = region + 1;        // â˜… é—œéµï¼šä¾†æºè·¯ç·šå€åŸŸ
                         ind.chromosome.push_back(gene);
                     }
                 }
@@ -79,27 +79,27 @@ vector<Individual> initializePopulation(const int population_size, const Data& p
     return population;
 }
 
-// ¶i¦æªA°È°Ï°ìªº¸Ñ½X
+// é€²è¡Œæœå‹™å€åŸŸçš„è§£ç¢¼
 void decodeServiceArea(Individual &indiv, const Data &parameters) {
     for (auto &gene : indiv.chromosome) {
-        int customerIdx = gene.customerId - 1; //³o¬O¬°¤F¹ïÀ³parameters¤ºªº¯x°}®æ¦¡
+        int customerIdx = gene.customerId - 1; //é€™æ˜¯ç‚ºäº†å°æ‡‰parameterså…§çš„çŸ©é™£æ ¼å¼
 
         vector<int> feasible_regions;
-        // ¨ú±o«È¤áªº¥i¦æªA°È°Ï°ì
+        // å–å¾—å®¢æˆ¶çš„å¯è¡Œæœå‹™å€åŸŸ
         for (int area = 0; area < regionNum; area++) {
             if (parameters.serviceRegion[customerIdx][area] == 1) {
-                feasible_regions.push_back(area + 1); // Âà´«¬° {1, 2, 3}
+                feasible_regions.push_back(area + 1); // è½‰æ›ç‚º {1, 2, 3}
             }
         }
 
-        // ±Æ§Ç½T«O¥Ñ¤p¨ì¤j
+        // æ’åºç¢ºä¿ç”±å°åˆ°å¤§
         sort(feasible_regions.begin(), feasible_regions.end());
 
         if (gene.undecodedServiceArea == 1) {
-            // ¥i¦æ°Ï°ì¥²©w¥u¦³¤@­Ó¡Aª½±µ¨Ï¥Î
+            // å¯è¡Œå€åŸŸå¿…å®šåªæœ‰ä¸€å€‹ï¼Œç›´æ¥ä½¿ç”¨
             gene.decodedServiceArea = feasible_regions[0];
         } else {
-            int idx = gene.undecodedServiceArea - 1; // ½s½X­È±q1¶}©l
+            int idx = gene.undecodedServiceArea - 1; // ç·¨ç¢¼å€¼å¾1é–‹å§‹
             if (idx < feasible_regions.size()) {
                 gene.decodedServiceArea = feasible_regions[idx];
             } else {
@@ -107,7 +107,7 @@ void decodeServiceArea(Individual &indiv, const Data &parameters) {
             }
         }    
     }
-    // ¸Ñ½X§¹°Ï°ì«á¡A¥i¥Hª¾¹D«È¤á¯u¥¿ªºªA°È°Ï°ì¡A±µ¤U¨Ó¹ï¦U°Ï°ì¤£Äİ©ó¸Ó¸ô½uªº«È¤á¶i¦æ§R°£¡A¯d¤U¥uÄİ©ó¸Ó°Ï°ìªº
+    // è§£ç¢¼å®Œå€åŸŸå¾Œï¼Œå¯ä»¥çŸ¥é“å®¢æˆ¶çœŸæ­£çš„æœå‹™å€åŸŸï¼Œæ¥ä¸‹ä¾†å°å„å€åŸŸä¸å±¬æ–¼è©²è·¯ç·šçš„å®¢æˆ¶é€²è¡Œåˆªé™¤ï¼Œç•™ä¸‹åªå±¬æ–¼è©²å€åŸŸçš„
     indiv.chromosome.erase(
         remove_if(
             indiv.chromosome.begin(),
@@ -121,12 +121,12 @@ void decodeServiceArea(Individual &indiv, const Data &parameters) {
 
 void decodeCargoRotation(Individual &indiv, const Data &parameters,const unordered_map<int, unordered_map<int, Cargo>> &cargoLookup) {
     for (auto &gene : indiv.chromosome) {
-        // ¥¿½T³z¹L customerId ©M cargoId §ä¨ì³fª«¸ê°T
+        // æ­£ç¢ºé€é customerId å’Œ cargoId æ‰¾åˆ°è²¨ç‰©è³‡è¨Š
         const Cargo &cargo = cargoLookup.at(gene.customerId).at(gene.cargoId);
         vector<int> feasibleOrientations;
         for (int ori = 0; ori < 6; ori++) {
             if (cargo.orientation[ori] == 1) {
-                feasibleOrientations.push_back(ori + 1);  // ¤è¦V1~6
+                feasibleOrientations.push_back(ori + 1);  // æ–¹å‘1~6
             }
         }
 
@@ -136,13 +136,13 @@ void decodeCargoRotation(Individual &indiv, const Data &parameters,const unorder
             << " no feasible orientation" << endl;
             continue;
         }
-        // ¨Ì·Ó§A­ì¥»ªº¸Ñ½X³W«h
+        // ä¾ç…§ä½ åŸæœ¬çš„è§£ç¢¼è¦å‰‡
         int decodedIndex = (gene.undecodedRotation % orientationCount);
         gene.decodedRotation = feasibleOrientations[decodedIndex];
     }
 }
 
-// «Ø¥ß³fª«¹ïÀ³ªí
+// å»ºç«‹è²¨ç‰©å°æ‡‰è¡¨
 unordered_map<int, unordered_map<int, Cargo>> createCargoLookup(const Data &parameters) {
     unordered_map<int, unordered_map<int, Cargo>> cargoLookup;
     for (const auto &cargo : parameters.cargoInformation) {
@@ -164,17 +164,17 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     long long rentedVehicleCargoCost = 0.0;
     long long vechicleLoadedMaxGap = 0.0;
 
-    Truck selfOwnedTrucks[regionNum + 1]; // ¨C¤@°Ï°ì¬Ò¦³¦Û¤vªº¦Û¦³¨®½ø
+    Truck selfOwnedTrucks[regionNum + 1]; // æ¯ä¸€å€åŸŸçš†æœ‰è‡ªå·±çš„è‡ªæœ‰è»Šè¼›
     vector<Truck> rentedTrucks;
     unordered_map<int, vector<Gene>> regionMap;
-    unordered_map<int, bool> isLoadedGlobal; // ¬ö¿ı©Ò¦³¸Ë¹Lªº«È¤á
-    vector <int> notLoadedCustomer; //¬ö¿ı¸Ë¤£¤Fªº«È¤á
+    unordered_map<int, bool> isLoadedGlobal; // ç´€éŒ„æ‰€æœ‰è£éçš„å®¢æˆ¶
+    vector <int> notLoadedCustomer; //ç´€éŒ„è£ä¸äº†çš„å®¢æˆ¶
     
     for (int i = 1; i <= regionNum; ++i) { 
         selfOwnedTrucks[i].truckId = i;
     }
 
-    for (const auto &gene : indiv.chromosome) { //¨Ì·Ó¶¶§Ç«Ø¥ß¨C­Ó°Ï°ìªº³fª«²M³æ¦Cªí
+    for (const auto &gene : indiv.chromosome) { //ä¾ç…§é †åºå»ºç«‹æ¯å€‹å€åŸŸçš„è²¨ç‰©æ¸…å–®åˆ—è¡¨
         regionMap[gene.decodedServiceArea].push_back(gene);
     }
 
@@ -182,7 +182,7 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
         if (regionMap.find(area) == regionMap.end()) continue;
         vector<Gene> &cargoList = regionMap[area];
 
-        // «ö¬V¦âÅé¶¶§Ç³B²z¡]±q«á©¹«e¡^
+        // æŒ‰æŸ“è‰²é«”é †åºè™•ç†ï¼ˆå¾å¾Œå¾€å‰ï¼‰
         unordered_map<int, vector<Gene>> customerGrouped;
 
         for (int i = cargoList.size() - 1; i >= 0; --i) {
@@ -190,11 +190,11 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
             customerGrouped[g.customerId].push_back(g);
         }
 
-        // === ¦Û¦³¨®½ø³B²z===
+        // === è‡ªæœ‰è»Šè¼›è™•ç†===
         Truck& truck = selfOwnedTrucks[area];
         unordered_set<int> seen;
         
-        //¥ª¤U¨¤ÂIªk
+        //å·¦ä¸‹è§’é»æ³•
         BLPlacement3D loader(truck.length, truck.width, truck.height);
         loader.setCargoLookup(createCargoLookup(parameters));
 
@@ -203,7 +203,7 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
             seen.insert(gene.customerId);
             auto& cargoGroup = customerGrouped[gene.customerId];
             if (loader.tryInsert(cargoGroup)) {
-                truck.loadedVolume += parameters.totalVolume[gene.customerId - 1]; //¬ö¿ı¨C­Ó¨®¸Ë¸üªº¤~¿n
+                truck.loadedVolume += parameters.totalVolume[gene.customerId - 1]; //ç´€éŒ„æ¯å€‹è»Šè£è¼‰çš„æ‰ç©
                 truck.assignedCargo.insert(truck.assignedCargo.end(), cargoGroup.begin(), cargoGroup.end());
                 isLoadedGlobal[gene.customerId] = true;
                 for (const auto& g : cargoGroup) {
@@ -234,9 +234,9 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     vechicleLoadedMaxGap = maxVol - minVol;
     indiv.fitness.push_back(vechicleLoadedMaxGap);
 
-    // ³B²z¨S¸Ë§¹ªº³fª«³¡¤À
+    // è™•ç†æ²’è£å®Œçš„è²¨ç‰©éƒ¨åˆ†
     for (const auto& [customerId, loaded] : isLoadedGlobal) {
-        if (!loaded) {  // ¦pªG³o­Ó«È¤á¨S³Q¦¨¥\¸Ë¸ü
+        if (!loaded) {  // å¦‚æœé€™å€‹å®¢æˆ¶æ²’è¢«æˆåŠŸè£è¼‰
             notLoadedCustomer.push_back(customerId);
         }
     }
@@ -254,7 +254,7 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
 
         vector<Gene> cargoGroup;
         for (const auto& g : indiv.chromosome) {
-            // ¥u¨ú³o¦ìÅU«È¡B¥B©|¥¼³Q¸Ë¸ü(¨Ò¦p position[0] == -1 ·í¦¨¥¼¸Ë¸ü«ü¼Ğ)
+            // åªå–é€™ä½é¡§å®¢ã€ä¸”å°šæœªè¢«è£è¼‰(ä¾‹å¦‚ position[0] == -1 ç•¶æˆæœªè£è¼‰æŒ‡æ¨™)
             if (notLoadedSet.count(g.customerId)) {
                 cargoGroup.push_back(g);
             }
@@ -303,46 +303,46 @@ vector<Individual> selection(const vector<Individual>& population, const vector<
     vector<int> indices(population.size());
     iota(indices.begin(), indices.end(), 0); // [0, 1, 2, ..., N-1]
 
-    // ¨Ì·Ó fitness ±Æ§Ç index
-    // ³o­Ó fitness ´N¬O³Ì«á¥Ø¼Ğ¨ç¼Æ­È¡A¦]¬°long long¤Ó¤j¦pªG´«¦¨¤p¼Æ¥i¯à¥X²{¿ù»~¡A©Ò¥H­n§âfitness¶V¤pªºÂ\¦b³Ì«e­±
+    // ä¾ç…§ fitness æ’åº index
+    // é€™å€‹ fitness å°±æ˜¯æœ€å¾Œç›®æ¨™å‡½æ•¸å€¼ï¼Œå› ç‚ºlong longå¤ªå¤§å¦‚æœæ›æˆå°æ•¸å¯èƒ½å‡ºç¾éŒ¯èª¤ï¼Œæ‰€ä»¥è¦æŠŠfitnessè¶Šå°çš„æ“ºåœ¨æœ€å‰é¢
     sort(indices.begin(), indices.end(), [&](int a, int b) {
         const auto& fa = decodedPopulation[a].fitness;
         const auto& fb = decodedPopulation[b].fitness;
 
-        // ¥ı¤ñ²Ä¤G­Ó¥Ø¼Ğ¡Gfitness[1](¥~¥Î¯²¥Î¦¨¥»)
+        // å…ˆæ¯”ç¬¬äºŒå€‹ç›®æ¨™ï¼šfitness[1](å¤–ç”¨ç§Ÿç”¨æˆæœ¬)
         if (fa[1] != fb[1]) {
-            return fa[1] < fb[1];   // ¶V¤p±Æ¶V«e­±
+            return fa[1] < fb[1];   // è¶Šå°æ’è¶Šå‰é¢
         }
-        // ­Y fitness[1] ¤@¼Ë¡A¦A¤ñ²Ä¤@­Ó¥Ø¼Ğ¡Gfitness[0](¦U¨®¸Ë¸ü§÷¿n®t¶Z)
-        return fa[0] < fb[0];       // ¤]¬O¶V¤p±Æ¶V«e­±
+        // è‹¥ fitness[1] ä¸€æ¨£ï¼Œå†æ¯”ç¬¬ä¸€å€‹ç›®æ¨™ï¼šfitness[0](å„è»Šè£è¼‰æç©å·®è·)
+        return fa[0] < fb[0];       // ä¹Ÿæ˜¯è¶Šå°æ’è¶Šå‰é¢
     });
 
-    // 1. ¥ı¿ï¥X top N% elite
+    // 1. å…ˆé¸å‡º top N% elite
     vector<Individual> newPopulation;
     for (int i = 0; i < eliteCount; ++i) {
         newPopulation.push_back(population[indices[i]]);
     }
 
-    // 2. Tournament selection ª½¨ì¸Éº¡
+    // 2. Tournament selection ç›´åˆ°è£œæ»¿
     while (newPopulation.size() < population.size()) {
-        // ÀH¾÷©â¥X tournamentSize ­Ó index
+        // éš¨æ©ŸæŠ½å‡º tournamentSize å€‹ index
         vector<int> tournament;
         for (int i = 0; i < tournamentSize; ++i) {
             int r = rand() % population.size();
             tournament.push_back(r);
         }
 
-        // §ä¥X tournament ¤¤ fitness ³Ì¦nªº
+        // æ‰¾å‡º tournament ä¸­ fitness æœ€å¥½çš„
         int bestIdx = *min_element(tournament.begin(), tournament.end(), [&](int a, int b) {
             const auto& fa = decodedPopulation[a].fitness;
             const auto& fb = decodedPopulation[b].fitness;
 
-            // ©w¸q¡ua ¤ñ b ¤p¶Ü¡H¡v
-            // ¥ı¬İ fitness[1]¡A¤pªºµø¬°¡u¤ñ¸û¤p¡v
+            // å®šç¾©ã€Œa æ¯” b å°å—ï¼Ÿã€
+            // å…ˆçœ‹ fitness[1]ï¼Œå°çš„è¦–ç‚ºã€Œæ¯”è¼ƒå°ã€
             if (fa[1] != fb[1]) {
-                return fa[1] < fb[1];  // fa[1] ¤ñ fb[1] ¤p => a ¤ñ b ¤p
+                return fa[1] < fb[1];  // fa[1] æ¯” fb[1] å° => a æ¯” b å°
             }
-            // ­Y fitness[1] ¬Û¦P¡A¦A¤ñ fitness[0]
+            // è‹¥ fitness[1] ç›¸åŒï¼Œå†æ¯” fitness[0]
             return fa[0] < fb[0];
         });
 
@@ -357,32 +357,32 @@ void crossoverServiceArea(Individual& child1, Individual& child2, double swapPro
     size_t n = child1.chromosome.size();
     if (n == 0) return;
 
-    std::unordered_set<int> visited;   // ½T«O¨C­Ó customer ¥u³B²z¤@¦¸
+    std::unordered_set<int> visited;   // ç¢ºä¿æ¯å€‹ customer åªè™•ç†ä¸€æ¬¡
 
     for (size_t i = 0; i < n; ++i) {
         int cid = child1.chromosome[i].customerId;
 
-        // ¦P¤@­Ó customer ¥u¨M©w¤@¦¸­n¤£­n¥æ´«
+        // åŒä¸€å€‹ customer åªæ±ºå®šä¸€æ¬¡è¦ä¸è¦äº¤æ›
         if (visited.count(cid)) continue;
         visited.insert(cid);
 
-        // ¦pªG³]­p«OÃÒ¦P¤@¦ì¸m customerId ¤@¼Ë¡A¥i¥HÀË¬d¤@¤U¡G
+        // å¦‚æœè¨­è¨ˆä¿è­‰åŒä¸€ä½ç½® customerId ä¸€æ¨£ï¼Œå¯ä»¥æª¢æŸ¥ä¸€ä¸‹ï¼š
         if (child1.chromosome[i].customerId != child2.chromosome[i].customerId) {
-            // ¦pªG¦³¥i¯à¤£¤@¼Ë¡A¤]¥i¥H§ï¦¨ continue;
+            // å¦‚æœæœ‰å¯èƒ½ä¸ä¸€æ¨£ï¼Œä¹Ÿå¯ä»¥æ”¹æˆ continue;
             continue;
         }
 
         int code1 = child1.chromosome[i].undecodedServiceArea;
         int code2 = child2.chromosome[i].undecodedServiceArea;
 
-        // ­Y¨â±ø¬V¦âÅé¤¤¦¹«È¤áªº½s½X¤@¼Ë¡A´N§¹¥ş¤£¥æ´«
+        // è‹¥å…©æ¢æŸ“è‰²é«”ä¸­æ­¤å®¢æˆ¶çš„ç·¨ç¢¼ä¸€æ¨£ï¼Œå°±å®Œå…¨ä¸äº¤æ›
         if (code1 == code2) continue;
 
-        // ¥i¿ï¡G¥Î¾÷²v¨M©w­n¤£­n¥æ´«³o­Ó«È¤á
+        // å¯é¸ï¼šç”¨æ©Ÿç‡æ±ºå®šè¦ä¸è¦äº¤æ›é€™å€‹å®¢æˆ¶
         double r = static_cast<double>(rand()) / RAND_MAX;
         if (r > swapProb) continue;
 
-        // ¹ï³o­ÓÅU«Èªº¡u©Ò¦³¦ì¸m¡v°µ¥æ´«
+        // å°é€™å€‹é¡§å®¢çš„ã€Œæ‰€æœ‰ä½ç½®ã€åšäº¤æ›
         for (size_t j = 0; j < n; ++j) {
             if (child1.chromosome[j].customerId == cid) {
                 std::swap(child1.chromosome[j].undecodedServiceArea,
@@ -395,10 +395,10 @@ void crossoverServiceArea(Individual& child1, Individual& child2, double swapPro
 void crossoverLoadingRotation(Individual& child1, Individual& child2) {
     int N = child1.chromosome.size();
 
-    // ÀH¾÷¿ï¤@­Ó¤ÁÂ_ÂI
-    int cutIdx = rand() % (N - 1) + 1; // ¤Á¦b1¡ãN-1¤§¶¡¡AÁ×§K¾ã±ø¤£°Ê
+    // éš¨æ©Ÿé¸ä¸€å€‹åˆ‡æ–·é»
+    int cutIdx = rand() % (N - 1) + 1; // åˆ‡åœ¨1ï½N-1ä¹‹é–“ï¼Œé¿å…æ•´æ¢ä¸å‹•
 
-    // ±q¤ÁÂ_ÂI¥H«á¡A¥æ´«³fª«ªºrotation½s½X
+    // å¾åˆ‡æ–·é»ä»¥å¾Œï¼Œäº¤æ›è²¨ç‰©çš„rotationç·¨ç¢¼
     for (int i = cutIdx; i < N; ++i) {
         swap(child1.chromosome[i].undecodedRotation, child2.chromosome[i].undecodedRotation);
     }
@@ -408,10 +408,10 @@ pair<Individual, Individual> crossover(const Individual& parent1, const Individu
     Individual child1 = parent1;
     Individual child2 = parent2;
 
-    // 1. ­«Å|ªA°È°Ï¬q¥æ´«
+    // 1. é‡ç–Šæœå‹™å€æ®µäº¤æ›
     crossoverServiceArea(child1, child2);
     
-    // 2. ³fÂd¸Ë¸ü¬q¥æ´«
+    // 2. è²¨æ«ƒè£è¼‰æ®µäº¤æ›
     crossoverLoadingRotation(child1, child2);
 
     return {child1, child2};
@@ -426,13 +426,13 @@ vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulat
     mt19937 g(rd());
     shuffle(indices.begin(), indices.end(),g);
     for (int i = 0; i < popSize; i += 2) {
-        // ¦w¥şÀË¬d¡G¨¾¤î³Ì«á¥u³Ñ¤@­Ó
+        // å®‰å…¨æª¢æŸ¥ï¼šé˜²æ­¢æœ€å¾Œåªå‰©ä¸€å€‹
         if (i + 1 >= popSize) break;
 
         const Individual& parent1 = selectedPopulation[indices[i]];
         const Individual& parent2 = selectedPopulation[indices[i+1]];
 
-        // ¥æ°t¾÷²v
+        // äº¤é…æ©Ÿç‡
         double r = (double)rand() / RAND_MAX;
         if (r < crossoverRate) {
             Individual child1, child2;
@@ -440,13 +440,13 @@ vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulat
             newPopulation.push_back(child1);
             newPopulation.push_back(child2);
         } else {
-            // ¤£¥æ°t¡Aª½±µ½Æ»s¤÷¥À
+            // ä¸äº¤é…ï¼Œç›´æ¥è¤‡è£½çˆ¶æ¯
             newPopulation.push_back(parent1);
             newPopulation.push_back(parent2);
         }
     }
 
-    // ¦pªG·s±Ú¸s¼Æ¶q¦h©ó­ì¨Ó¡A¤Á±¼¦h¾lªº
+    // å¦‚æœæ–°æ—ç¾¤æ•¸é‡å¤šæ–¼åŸä¾†ï¼Œåˆ‡æ‰å¤šé¤˜çš„
     if (newPopulation.size() > popSize) {
         newPopulation.resize(popSize);
     }
@@ -455,26 +455,41 @@ vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulat
 }
 
 void mutateServiceArea(Individual& indiv, const Data& parameters, double mutationRate) {
+    // 1. å…ˆæ‰¾å‡ºã€Œå¯è¡Œæœå‹™å€åŸŸæ•¸é‡ > 1ã€çš„é¡§å®¢
+    unordered_set<int> multiRegionCustomers; // åªè¨˜ "å¯åœ¨å¤šå€‹å€åŸŸæœå‹™" çš„å®¢æˆ¶ID
 
-    // ¥H¡uÅU«È¡v¬°³æ¦ì³B²z¡G¦P¤@ÅU«È¥u¨M©w¤@¦¸­n¤£­n¬ğÅÜ
+    for (int i = 0; i < Customer; ++i) { // i: 0-based index for parameters.serviceRegion
+        int cid = i + 1;                 // å®¢æˆ¶IDå¾ 1 é–‹å§‹
+        int cnt = 0;
+        for (int area = 0; area < regionNum; ++area) {
+            if (parameters.serviceRegion[i][area] == 1) {
+                ++cnt;
+                if (cnt > 1) {
+                    multiRegionCustomers.insert(cid);
+                    break; // å·²ç¶“ç¢ºå®š>1å°±å¯ä»¥ä¸ç”¨å†æ•¸äº†
+                }
+            }
+        }
+    }
+
+    // 2. ä»¥ã€Œé¡§å®¢ã€ç‚ºå–®ä½è™•ç†ï¼šåŒä¸€é¡§å®¢åªæ±ºå®šä¸€æ¬¡è¦ä¸è¦çªè®Š
     unordered_set<int> visitedCustomers;
 
     for (auto& gene : indiv.chromosome) {
         int cid = gene.customerId;
+        if (!multiRegionCustomers.count(cid)) continue;
 
-        // ¦P¤@­Ó«È¤á¥u³B²z¤@¦¸
+        // åŒä¸€å€‹é¡§å®¢åªæ±ºå®šä¸€æ¬¡
         if (visitedCustomers.count(cid)) continue;
         visitedCustomers.insert(cid);
 
-        // ¨M©w­n¤£­n¬ğÅÜ
         double r = static_cast<double>(rand()) / RAND_MAX;
         if (r >= mutationRate) continue;
 
-        // ¨ú±o¥Ø«e³o­ÓÅU«Èªº½s½X¡]1 ©Î 2¡^
         int currentEncoding = gene.undecodedServiceArea;
         int newEncoding = (currentEncoding == 1 ? 2 : 1);
 
-        // ±N³o­ÓÅU«È¦b¾ã±ø chromosome ¤¤ªº©Ò¦³°ò¦]¡A¤@°_§ï¦¨ newEncoding
+        // å°‡é€™å€‹é¡§å®¢åœ¨æ•´æ¢ chromosome ä¸­çš„æ‰€æœ‰åŸºå› ä¸€èµ·æ”¹
         for (auto& g2 : indiv.chromosome) {
             if (g2.customerId == cid) {
                 g2.undecodedServiceArea = newEncoding;
@@ -482,13 +497,14 @@ void mutateServiceArea(Individual& indiv, const Data& parameters, double mutatio
         }
     }
 }
+
 void mutateRotation(Individual& indiv, double mutationRate) {
     for (auto& gene : indiv.chromosome) {
         if ((double)rand() / RAND_MAX < mutationRate) {
             int originalRotation = gene.undecodedRotation;
-            int newRotation = rand() % 6 + 1;  // ²£¥Í 1~6
+            int newRotation = rand() % 6 + 1;  // ç”¢ç”Ÿ 1~6
             while (newRotation == originalRotation) {
-                newRotation = rand() % 6 + 1;  // Á×§K¸ò­ì¥»¤@¼Ë
+                newRotation = rand() % 6 + 1;  // é¿å…è·ŸåŸæœ¬ä¸€æ¨£
             }
             gene.undecodedRotation = newRotation;
         }

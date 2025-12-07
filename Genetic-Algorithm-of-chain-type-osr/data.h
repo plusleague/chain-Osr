@@ -10,8 +10,8 @@
 #include <unordered_set>
 
 using namespace std;
-const int N = 13;
-const int Customer = 12;
+const int N = 51;
+const int Customer = 50;
 const int regionNum = 4;
 const int selfOwnedTruck = regionNum;
 const int rentedTruck = regionNum;
