@@ -58,10 +58,10 @@ int main(){
         const Individual& genBest = population[bestIdx];
 
         // 印出「這一代」的最佳 fitness（只印值，不印路線）
-        cout << "Generation " << generation
-             << " best fitness -> "
-             << "f[1] (rented cost) = " << genBest.fitness[1]
-             << ", f[0] (volume diff) = " << genBest.fitness[0] << '\n';
+        // cout << "Generation " << generation
+        //      << " best fitness -> "
+        //      << "f[1] (rented cost) = " << genBest.fitness[1]
+        //      << ", f[0] (volume diff) = " << genBest.fitness[0] << '\n';
 
         // 更新「全程最佳解」
         bool improvedThisGen = false;
@@ -73,6 +73,11 @@ int main(){
         } else {
             ++noImproveCount;
         }
+
+        cout << "Generation " << generation
+        << " global best fitness so far -> "
+        << "f[1] (rented cost) = " << globalBest.fitness[1]
+        << ", f[0] (volume diff) = " << globalBest.fitness[0] << '\n';
 
         if (noImproveCount >= patience) {
             cout << "No improvement in " << patience
