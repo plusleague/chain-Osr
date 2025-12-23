@@ -63,7 +63,7 @@ struct Individual {
     vector<Gene> chromosome;
     Truck selfOwnedTrucks[regionNum + 1];
     vector<Truck> rentedTrucks;
-    vector<long long> fitness; //²Ä¤@­Ó©ñ¤~¿n®t¶Z¡A²Ä¤G­Ó©ñ¯²¥Îªº¦¨¥»
+    vector<long long> fitness; //ç¬¬ä¸€å€‹æ”¾æ‰ç©å·®è·ï¼Œç¬¬äºŒå€‹æ”¾ç§Ÿç”¨çš„æˆæœ¬
     double rentedVehicleLoadingCost = 0.0;
     double maxVolumeDifferenceOfEachCar = 0.0;
 };

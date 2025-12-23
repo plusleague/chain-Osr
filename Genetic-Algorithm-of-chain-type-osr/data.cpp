@@ -9,7 +9,7 @@
 
 using namespace std;
 
-// ³B²zÅª°Ñ¼Æ¬ÛÃö¸ê®Æ
+// è™•ç†è®€åƒæ•¸ç›¸é—œè³‡æ–™
 
 void readGoodsCSV(const string& filename, Data& data) {
     ifstream file(filename);
@@ -40,7 +40,7 @@ void readGoodsCSV(const string& filename, Data& data) {
     file.close();
 }
 
-// Åª¨úªA°È°Ï°ì
+// è®€å–æœå‹™å€åŸŸ
 void readServiceAreaCSV(const string& filename, Data& data) {
     ifstream file(filename);
     if (!file.is_open()) {
@@ -65,7 +65,7 @@ void readServiceAreaCSV(const string& filename, Data& data) {
     file.close();
 }
 
-// Åª¨ú³fª«¼Æ¶q
+// è®€å–è²¨ç‰©æ•¸é‡
 void readCustomerInfoCSV(const string& filename, Data& data) {
     ifstream file(filename);
     if (!file.is_open()) {
@@ -108,9 +108,9 @@ void readRouteToCSV(const string& filename, Data& data) {
         getline(ss, value, ',');
         region = stoi(value);
         while (getline(ss, value, ',')) {
-            if (value.empty()) continue;  // ªÅÄæ²¤¹L
+            if (value.empty()) continue;  // ç©ºæ¬„ç•¥éŽ
             int node = stoi(value);
-            if (node > 0) route.push_back(node); // ©¿²¤ depot
+            if (node > 0) route.push_back(node); // å¿½ç•¥ depot
         }
         if (region >= 0 && region < regionNum)
             data.route[region] = route;
@@ -245,4 +245,3 @@ bool BLPlacement3D::isSupported(const Box& b, const vector<Box>& boxes) {
     }
     return supportArea >= 0.8 * baseArea; 
 }
-
