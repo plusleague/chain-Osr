@@ -23,7 +23,7 @@ int main(){
 
     srand(time(NULL));
     int noImproveCount = 0;
-    const int patience = 500;
+    const int patience = 1;
 
     // 讀檔
     Data parameters;
@@ -103,6 +103,32 @@ int main(){
              << "f[1] (rented cost) = " << globalBest.fitness[1]
              << ", f[0] (volume diff) = " << globalBest.fitness[0] << '\n';
 
+        // ===== 自有車：印路線 =====
+        for (int i = 1; i <= regionNum; ++i) {
+            const Truck& truck = globalBest.selfOwnedTrucks[i];
+            cout << "\nSelf-owned Truck (Area " << i << ") route: ";
+
+            // 根據 assignedCargo 推出「拜訪客戶順序」（同一客戶只顯示一次）
+            vector<int> route;
+            unordered_set<int> seen;
+            for (const auto& g : truck.assignedCargo) {
+                if (!seen.count(g.customerId)) {
+                    seen.insert(g.customerId);
+                    route.push_back(g.customerId);
+                }
+            }
+
+            if (route.empty()) {
+                cout << "(no customers)\n";
+            } else {
+                for (size_t j = 0; j < route.size(); ++j) {
+                    cout << route[j];
+                    if (j + 1 < route.size()) cout << " -> ";
+                }
+                cout << '\n';
+            }
+        }
+
         // 印出自有車的裝載／路線（用你之前的寫法）
         for (int i = 1; i <= regionNum; ++i) {
             const Truck& truck = globalBest.selfOwnedTrucks[i];
@@ -118,7 +144,7 @@ int main(){
         }
     
         // 如果也想看租用車，可以再加：
-        /*
+        
         for (size_t k = 0; k < globalBest.rentedTrucks.size(); ++k) {
             const Truck& truck = globalBest.rentedTrucks[k];
             cout << "Rented Truck " << k << " cargos:\n";
@@ -130,7 +156,7 @@ int main(){
                                        << g.position[2] << ")\n";
             }
         }
-        */
+        
     }
     return 0;
 }

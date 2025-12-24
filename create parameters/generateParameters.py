@@ -7,7 +7,7 @@ import random
 import math
 
 
-# 寫入 CSV 檔案
+# 寫入 CSV 檔
 def write_to_csv(goods_data, service_areas, num_customers, routes, arcs):
 
     # 客戶貨物數量
@@ -117,7 +117,7 @@ def generate_service_areas(num_customers, num_areas):
 def generate_vehicle_routes(service_areas, num_areas, shuffle=True):
     routes = {}
     for area_id in range(num_areas):
-        route = [0]  # 起點倉庫
+        route = [0]  # 起始點
         customers_in_area = []
         
         for row in service_areas:
@@ -130,7 +130,7 @@ def generate_vehicle_routes(service_areas, num_areas, shuffle=True):
             random.shuffle(customers_in_area)
 
         route.extend(customers_in_area)
-        route.append(0)  # 回到倉庫
+        route.append(0) #終點
         routes[area_id] = route
 
     return routes
@@ -154,8 +154,8 @@ def generate_arcs(routes):
                 if from_node != to_node:
                     arc_list.append([area_id, from_node, to_node])
     return arc_list
-# 主程式
-num_customers = 48
+# main function
+num_customers = 60
 num_areas = 4
 goods_data = generate_customer_goods(num_customers)
 service_areas = generate_service_areas(num_customers, num_areas)

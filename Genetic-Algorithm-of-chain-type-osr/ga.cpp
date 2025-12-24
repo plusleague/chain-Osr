@@ -161,21 +161,23 @@ void decodePopulation(vector<Individual>& decodedPopulation, const Data &paramet
 
 void evaluateFitness(Individual &indiv, const Data &parameters) {
 
-    long long rentedVehicleCargoCost = 0.0;
-    long long vechicleLoadedMaxGap = 0.0;
+    long long rentedVehicleCargoCost = 0;
+    long long vechicleLoadedMaxGap = 0;
 
     Truck selfOwnedTrucks[regionNum + 1]; // 每一區域皆有自己的自有車輛
     vector<Truck> rentedTrucks;
     unordered_map<int, vector<Gene>> regionMap;
     unordered_map<int, bool> isLoadedGlobal; // 紀錄所有裝過的客戶
-    vector <int> notLoadedCustomer; //紀錄裝不了的客戶
+    vector<int> notLoadedCustomer;           // 紀錄裝不了的客戶
     
     for (int i = 1; i <= regionNum; ++i) { 
         selfOwnedTrucks[i].truckId = i;
     }
 
-    for (const auto &gene : indiv.chromosome) { //依照順序建立每個區域的貨物清單列表
-        regionMap[gene.decodedServiceArea].push_back(gene);
+    // 先把染色體中出現過的所有客戶初始化為 false（預設都沒裝到）
+    for (const auto &gene : indiv.chromosome) {
+        isLoadedGlobal[gene.customerId] = false;
+        regionMap[gene.decodedServiceArea].push_back(gene);  // 順便建 regionMap
     }
 
     for (int area = 1; area <= regionNum; ++area) {
@@ -184,8 +186,7 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
 
         // 按染色體順序處理（從後往前）
         unordered_map<int, vector<Gene>> customerGrouped;
-
-        for (int i = cargoList.size() - 1; i >= 0; --i) {
+        for (int i = (int)cargoList.size() - 1; i >= 0; --i) {
             const Gene& g = cargoList[i];
             customerGrouped[g.customerId].push_back(g);
         }
@@ -194,18 +195,19 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
         Truck& truck = selfOwnedTrucks[area];
         unordered_set<int> seen;
         
-        //左下角點法
         BLPlacement3D loader(truck.length, truck.width, truck.height);
         loader.setCargoLookup(createCargoLookup(parameters));
 
-        for (const auto&gene: cargoList) {
+        for (const auto& gene : cargoList) {
             if (seen.count(gene.customerId)) continue;
             seen.insert(gene.customerId);
+
             auto& cargoGroup = customerGrouped[gene.customerId];
             if (loader.tryInsert(cargoGroup)) {
-                truck.loadedVolume += parameters.totalVolume[gene.customerId - 1]; //紀錄每個車裝載的才積
+                truck.loadedVolume += parameters.totalVolume[gene.customerId - 1];
                 truck.assignedCargo.insert(truck.assignedCargo.end(), cargoGroup.begin(), cargoGroup.end());
                 isLoadedGlobal[gene.customerId] = true;
+
                 for (const auto& g : cargoGroup) {
                     for (auto& indivGene : indiv.chromosome) {
                         if (indivGene.customerId == g.customerId && indivGene.cargoId == g.cargoId) {
@@ -215,9 +217,8 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
                         }
                     }
                 }
-            }
-            else {
-                isLoadedGlobal[gene.customerId] = false;
+            } else {
+                // 這個顧客裝不下 → 保持 false，後面交給租用車
                 break;
             }
         }
@@ -227,69 +228,86 @@ void evaluateFitness(Individual &indiv, const Data &parameters) {
     long long minVol = INT_MAX;
     for (int area = 1; area <= regionNum; ++area) {
         long long v = selfOwnedTrucks[area].loadedVolume;
-        // cout << "area: " << area << " loadedVolume: " << v << endl;
         if (v > maxVol) maxVol = v;
         if (v < minVol) minVol = v;
     }
     vechicleLoadedMaxGap = maxVol - minVol;
     indiv.fitness.push_back(vechicleLoadedMaxGap);
 
-    // 處理沒裝完的貨物部分
+    // ✅ 這裡一定會包含所有「出現在 chromosome 中」但沒被自有車載到的客戶
+    notLoadedCustomer.clear();
     for (const auto& [customerId, loaded] : isLoadedGlobal) {
-        if (!loaded) {  // 如果這個客戶沒被成功裝載
+        if (!loaded) {
             notLoadedCustomer.push_back(customerId);
         }
     }
-
+    sort(notLoadedCustomer.begin(), notLoadedCustomer.end());
+    
     size_t cursor = 0;
     int rentedTruckId = 0;
     unordered_set<int> rentedSeen;
 
     unordered_set<int> notLoadedSet(notLoadedCustomer.begin(), notLoadedCustomer.end());
-
+    
+    // 以「顧客」為單位，把沒裝到的客戶分批塞進租用車
     while (cursor < notLoadedCustomer.size()) {
 
         Truck rentedTruck;
         rentedTruck.truckId = ++rentedTruckId;
 
-        vector<Gene> cargoGroup;
-        for (const auto& g : indiv.chromosome) {
-            // 只取這位顧客、且尚未被裝載(例如 position[0] == -1 當成未裝載指標)
-            if (notLoadedSet.count(g.customerId)) {
-                cargoGroup.push_back(g);
-            }
-        }
-
         BLPlacement3D loader(rentedTruck.length, rentedTruck.width, rentedTruck.height);
         loader.setCargoLookup(createCargoLookup(parameters));
 
-        vector<int> routeStack;
+        bool anyLoadedThisTruck = false;
 
         for (; cursor < notLoadedCustomer.size(); ++cursor) {
             int custId = notLoadedCustomer[cursor];
+
             if (rentedSeen.count(custId)) continue;
-            
-            if (loader.tryInsert(cargoGroup)) {
-                routeStack.push_back(custId);
-                rentedTruck.assignedCargo.insert(rentedTruck.assignedCargo.end(), cargoGroup.begin(), cargoGroup.end());
+
+            // 建 cargoGroup
+            vector<Gene> cargoGroup;
+            for (const auto& g : indiv.chromosome) {
+                if (g.customerId == custId) {
+                    cargoGroup.push_back(g);
+                }
+            }
+            if (cargoGroup.empty()) continue;
+
+            bool canLoad = loader.tryInsert(cargoGroup);
+
+            if (canLoad) {
+                anyLoadedThisTruck = true;
                 rentedSeen.insert(custId);
+
+                rentedTruck.assignedCargo.insert(rentedTruck.assignedCargo.end(),
+                                                cargoGroup.begin(), cargoGroup.end());
+                rentedTruck.route.push_back(custId);
 
                 for (const auto& g : cargoGroup) {
                     const Cargo& c = loader.cargoLookup[g.customerId][g.cargoId];
-                    int chargeUnits = c.volume / 27000;
+                    long long chargeUnits = c.volume / 27000;
                     rentedVehicleCargoCost += chargeUnits * 6;
                 }
-
             } else {
-                ++cursor;
-                break;
+                // 分兩種狀況：
+                if (!anyLoadedThisTruck) {    
+                    rentedSeen.insert(custId);
+                    cerr << "Customer " << custId << " cannot be loaded into any rented truck.\n";
+                    continue; 
+                } else {
+                    break;
+                }
             }
         }
-        if (!routeStack.empty()) {
-            rentedTruck.route.insert(rentedTruck.route.end(), routeStack.rbegin(), routeStack.rend());
+
+        if (anyLoadedThisTruck) {
             rentedTrucks.push_back(rentedTruck);
+        } else {
+            break;
         }
     }
+
     for (int i = 1; i <= regionNum; ++i) {
         indiv.selfOwnedTrucks[i] = selfOwnedTrucks[i];
     }
@@ -336,11 +354,9 @@ vector<Individual> selection(const vector<Individual>& population, const vector<
         int bestIdx = *min_element(tournament.begin(), tournament.end(), [&](int a, int b) {
             const auto& fa = decodedPopulation[a].fitness;
             const auto& fb = decodedPopulation[b].fitness;
-
-            // 定義「a 比 b 小嗎？」
             // 先看 fitness[1]，小的視為「比較小」
             if (fa[1] != fb[1]) {
-                return fa[1] < fb[1];  // fa[1] 比 fb[1] 小 => a 比 b 小
+                return fa[1] < fb[1];  // fa[1] 比 fb[1] 小 >> a 比 b 小
             }
             // 若 fitness[1] 相同，再比 fitness[0]
             return fa[0] < fb[0];
@@ -396,9 +412,8 @@ void crossoverLoadingRotation(Individual& child1, Individual& child2) {
     int N = child1.chromosome.size();
 
     // 隨機選一個切斷點
-    int cutIdx = rand() % (N - 1) + 1; // 切在1～N-1之間，避免整條不動
+    int cutIdx = rand() % (N - 1) + 1; 
 
-    // 從切斷點以後，交換貨物的rotation編碼
     for (int i = cutIdx; i < N; ++i) {
         swap(child1.chromosome[i].undecodedRotation, child2.chromosome[i].undecodedRotation);
     }
@@ -407,15 +422,11 @@ void crossoverLoadingRotation(Individual& child1, Individual& child2) {
 pair<Individual, Individual> crossover(const Individual& parent1, const Individual& parent2) {
     Individual child1 = parent1;
     Individual child2 = parent2;
-
-    // 1. 重疊服務區段交換
     crossoverServiceArea(child1, child2);
-    
-    // 2. 貨櫃裝載段交換
     crossoverLoadingRotation(child1, child2);
-
     return {child1, child2};
 }
+
 vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulation, double crossoverRate) {
     vector<Individual> newPopulation;
     int popSize = selectedPopulation.size();
@@ -426,7 +437,6 @@ vector<Individual> crossoverPopulation(const vector<Individual>& selectedPopulat
     mt19937 g(rd());
     shuffle(indices.begin(), indices.end(),g);
     for (int i = 0; i < popSize; i += 2) {
-        // 安全檢查：防止最後只剩一個
         if (i + 1 >= popSize) break;
 
         const Individual& parent1 = selectedPopulation[indices[i]];
@@ -472,7 +482,7 @@ void mutateServiceArea(Individual& indiv, const Data& parameters, double mutatio
         }
     }
 
-    // 2. 以「顧客」為單位處理：同一顧客只決定一次要不要突變
+    // 2. 以顧客為單位處理：同一顧客只決定一次要不要突變
     unordered_set<int> visitedCustomers;
 
     for (auto& gene : indiv.chromosome) {

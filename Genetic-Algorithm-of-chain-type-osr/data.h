@@ -10,12 +10,12 @@
 #include <unordered_set>
 
 using namespace std;
-const int N = 51;
-const int Customer = 50;
+const int N = 61;
+const int Customer = 60;
 const int regionNum = 4;
 const int selfOwnedTruck = regionNum;
 const int rentedTruck = regionNum;
-const int populationSize = 50;
+const int populationSize = 2;
 const int maxGenerations = 10000;
 const double crossoverRate = 0.8;
 const double mutationRate = 0.1;
